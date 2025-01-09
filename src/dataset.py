@@ -89,6 +89,7 @@ class BaseDataset(Dataset):
 
         # first compute mean
         self.num_data = 0
+        u_loc = None  # Default initialization
 
         for i, dataset in enumerate(self.datasets_train):
             pickle_dict = self.load(self.path_data_save, dataset)
@@ -98,6 +99,9 @@ class BaseDataset(Dataset):
             else:
                 u_loc += u.sum(dim=0)
             self.num_data += u.shape[0]
+        # Check if u_loc has a valid value
+        if u_loc is None:
+            raise ValueError("u_loc is not initialized properly.")
         u_loc = u_loc / self.num_data
 
         # second compute standard deviation
