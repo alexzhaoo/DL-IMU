@@ -12,10 +12,10 @@ max_loss = 2e1
 max_grad_norm = 1e0
 min_lr = 1e-5
 criterion = torch.nn.MSELoss(reduction="sum")
-lr_initprocesscov_net = 1e-4
+lr_initprocesscov_net = 1e-5
 weight_decay_initprocesscov_net = 0e-8
-lr_mesnet = {'cov_net': 1e-4,
-    'cov_lin': 1e-4,
+lr_mesnet = {'cov_net': 1e-5,
+    'cov_lin': 1e-5,
     }
 weight_decay_mesnet = {'cov_net': 1e-8,
     'cov_lin': 1e-8,
@@ -103,6 +103,9 @@ def prepare_loss_data(args, dataset):
     # prepare delta_p_gt
     list_rpe = {}
     for dataset_name, Ns in dataset.datasets_train_filter.items():
+        if Ns[1] is None:
+            Ns[1] = len(dataset.get_data(dataset_name)[0])
+
         t, ang_gt, p_gt, v_gt, u = prepare_data(args, dataset, dataset_name, 0)
         p_gt = p_gt.double()
         Rot_gt = torch.zeros(Ns[1], 3, 3)
