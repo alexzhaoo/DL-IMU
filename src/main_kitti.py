@@ -460,7 +460,7 @@ class KITTIArgs():
         path_results = "../results"
         path_temp = "../temp"
 
-        epochs = 400
+        epochs = 4 # was 400
         seq_dim = 6000
 
         # training, cross-validation and test dataset
@@ -481,4 +481,3 @@ if __name__ == '__main__':
     args = KITTIArgs()
     dataset = KITTIDataset(args)
     launch(KITTIArgs)
-

@@ -63,8 +63,9 @@ def train_filter(args, dataset):
     optimizer = set_optimizer(iekf)
     start_time = time.time()
 
+    loss_history = []
     for epoch in range(1, args.epochs + 1):
-        train_loop(args, dataset, epoch, iekf, optimizer, args.seq_dim)
+        train_loop(args, dataset, epoch, iekf, optimizer, args.seq_dim, loss_history)
         save_iekf(args, iekf)
         print("Amount of time spent for 1 epoch: {}s\n".format(int(time.time() - start_time)))
         start_time = time.time()
@@ -149,7 +150,7 @@ def prepare_loss_data(args, dataset):
     dataset.dump(mondict, file_delta_p)
 
 
-def train_loop(args, dataset, epoch, iekf, optimizer, seq_dim):
+def train_loop(args, dataset, epoch, iekf, optimizer, seq_dim, loss_history):
     loss_train = 0
     optimizer.zero_grad()
     for i, (dataset_name, Ns) in enumerate(dataset.datasets_train_filter.items()):
@@ -181,7 +182,13 @@ def train_loop(args, dataset, epoch, iekf, optimizer, seq_dim):
         optimizer.step()
         optimizer.zero_grad()
         cprint("gradient norm: {:.5f}".format(g_norm))
-    print('Train Epoch: {:2d} \tLoss: {:.5f}'.format(epoch, loss_train))
+    
+    # Save the epoch loss and print it in real time
+    epoch_loss = loss_train.item()
+    loss_history.append(epoch_loss)
+    print('Train Epoch: {:2d} \tLoss: {:.5f}'.format(epoch, epoch_loss), flush=True)
+    
+    # print('Train Epoch: {:2d} \tLoss: {:.5f}'.format(epoch, loss_train))
     return loss_train
 
 
