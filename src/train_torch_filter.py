@@ -7,16 +7,17 @@ from termcolor import cprint
 from utils_torch_filter import TORCHIEKF
 from utils import prepare_data
 import copy
+import pickle
 
 max_loss = 2e1
 max_grad_norm = 1e0
-min_lr = 1e-5
+min_lr = 1e-4  # was 1e-5
 criterion = torch.nn.MSELoss(reduction="sum")
-lr_initprocesscov_net = 1e-5
-weight_decay_initprocesscov_net = 0e-8
-lr_mesnet = {'cov_net': 1e-5,
-    'cov_lin': 1e-5,
+lr_initprocesscov_net = min_lr
+lr_mesnet = {'cov_net': min_lr,
+    'cov_lin': min_lr,
     }
+weight_decay_initprocesscov_net = 0e-8
 weight_decay_mesnet = {'cov_net': 1e-8,
     'cov_lin': 1e-8,
     }
@@ -66,6 +67,7 @@ def train_filter(args, dataset):
     loss_history = []
     for epoch in range(1, args.epochs + 1):
         train_loop(args, dataset, epoch, iekf, optimizer, args.seq_dim, loss_history)
+        save_loss_history(args, loss_history)
         save_iekf(args, iekf)
         print("Amount of time spent for 1 epoch: {}s\n".format(int(time.time() - start_time)))
         start_time = time.time()
@@ -197,6 +199,11 @@ def save_iekf(args, iekf):
     torch.save(iekf.state_dict(), file_name)
     print("The IEKF nets are saved in the file " + file_name)
 
+def save_loss_history(args, loss_history):
+    file_name = os.path.join(args.path_temp, "loss_history.p")
+    with open(file_name, 'wb') as f:
+        pickle.dump(loss_history, f, protocol=pickle.HIGHEST_PROTOCOL)
+    print("The loss history is saved in the file " + file_name)
 
 def mini_batch_step(dataset, dataset_name, iekf, list_rpe, t, ang_gt, p_gt, v_gt, u, N0):
     iekf.set_Q()

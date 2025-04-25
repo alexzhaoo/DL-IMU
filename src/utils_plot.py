@@ -7,6 +7,64 @@ from itertools import chain
 from utils import *
 from utils_torch_filter import TORCHIEKF
 
+import numpy as np
+
+def kitti_rel_errors(R_est, p_est, R_gt, p_gt,
+                     lengths=(100,200,300,400,500,600,700,800),
+                     step=10):
+    """
+    Return
+        trel_mean  – scalar  [%]
+        rrel_mean  – scalar  [deg/km]
+        trel_L     – list len(lengths) with per-L averages
+        rrel_L     – list len(lengths) with per-L averages
+    Implements exactly the KITTI dev-kit logic.
+    """
+    # --- helper to build / invert SE(3) ---
+    def make_pose(R, p):
+        T = np.eye(4)
+        T[:3,:3] = R
+        T[:3, 3] = p
+        return T
+    # --------------------------------------
+    # cumulative distance along ground truth
+    dist = np.cumsum(
+        np.r_[0, np.linalg.norm(np.diff(p_gt, axis=0), axis=1)]
+    )
+    N = len(p_gt)
+    # pre-build all global poses once for speed
+    T_gt  = [make_pose(R_gt [i], p_gt [i]) for i in range(N)]
+    T_est = [make_pose(R_est[i], p_est[i]) for i in range(N)]
+
+    trel_L, rrel_L = [], []
+    for L in lengths:
+        t_segs, r_segs = [], []
+        for s in range(0, N, step):          # slide window (≈1 s at 10 Hz)
+            # index of first frame with travelled distance ≥ L
+            target = dist[s] + L
+            e = np.searchsorted(dist, target)
+            if e >= N:                       # segment would run out of data
+                break
+            # relative motions s→e
+            T_gt_rel  = np.linalg.inv(T_gt[s])  @ T_gt[e]
+            T_est_rel = np.linalg.inv(T_est[s]) @ T_est[e]
+            # error transform
+            E = np.linalg.inv(T_est_rel) @ T_gt_rel
+            # translation part
+            trans_err = np.linalg.norm(E[:3,3])        # metres
+            # rotation part
+            cos_ang = np.clip((np.trace(E[:3,:3]) - 1)/2.0, -1.0, 1.0)
+            rot_err_rad = np.arccos(cos_ang)            # radians
+            # KITTI normalisation
+            t_segs.append(100.0 * trans_err / L)            # %
+            r_segs.append(np.degrees(rot_err_rad) * 1000.0 / L)  # deg/km
+        trel_L.append(np.mean(t_segs))
+        rrel_L.append(np.mean(r_segs))
+    return (np.mean(trel_L), np.mean(rrel_L), trel_L, rrel_L)
+
+
+
+
 def results_filter(args, dataset):
 
     for i in range(0, len(dataset.datasets)):
@@ -82,6 +140,22 @@ def results_filter(args, dataset):
         p_bis = (Rot_gt.matmul(torch.from_numpy(p_r).float().unsqueeze(-1)).squeeze()).numpy()
         error_p = p_gt - p_bis
 
+        # --- KITTI relative errors --------------------------------------------------
+        trel, rrel, trel_perL, rrel_perL = kitti_rel_errors(
+                Rot, p[:, :3], Rot_gt.numpy(), p_gt[:, :3])
+        print(f"  KITTI rel. translation error (trel): {trel:6.3f}  [%]")
+        print(f"  KITTI rel. rotation    error (rrel): {rrel:6.3f}  [deg/km]")
+        # ---------------------------------------------------------------------------
+        lengths = np.arange(100, 900, 100)
+        figs, figs_name = [], []
+        fig_rel, ax_rel = plt.subplots(figsize=(20, 10))
+        ax_rel.plot(lengths, trel_perL, 'o-', label='t_rel [%]')
+        ax_rel.plot(lengths, rrel_perL, 's-', label='r_rel [deg/km]')
+        ax_rel.set_xlabel('segment length L [m]')
+        ax_rel.grid(); ax_rel.legend()
+        figs.append(fig_rel); figs_name.append("kitti_relative_errors")
+
+
         # plot and save plot
         folder_path = os.path.join(args.path_results, dataset_name)
         create_folder(folder_path)
@@ -91,7 +165,7 @@ def results_filter(args, dataset):
         # orientation, bias gyro and bias accelerometer
         fig2, axs2 = plt.subplots(3, 1, sharex=True, figsize=(20, 10))
         # position in plan
-        fig3, ax3 = plt.subplots(figsize=(20, 10))
+        fig3, ax3 = plt.subplots(figsize=(20, 10))  # Updated figsize to (20, 10)
         # position in plan after alignment
         fig4, ax4 = plt.subplots(figsize=(20, 10))
         #  Measurement covariance in log scale and normalized inputs

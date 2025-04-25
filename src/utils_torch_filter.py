@@ -38,46 +38,241 @@ class InitProcessCovNet(torch.nn.Module):
             return beta
 
 
-class MesNet(torch.nn.Module):
-        def __init__(self):
-            super(MesNet, self).__init__()
-            self.beta_measurement = 3*torch.ones(2).double()
-            self.tanh = torch.nn.Tanh()
+# class MesNet(torch.nn.Module):
+#         def __init__(self):
+#             super(MesNet, self).__init__()
+#             self.beta_measurement = 3*torch.ones(2).double()
+#             self.tanh = torch.nn.Tanh()
 
-            self.cov_net = torch.nn.Sequential(torch.nn.Conv1d(6, 32, 5),
-                       torch.nn.ReplicationPad1d(4),
-                       torch.nn.ReLU(),
-                       torch.nn.Dropout(p=0.5),
-                       torch.nn.Conv1d(32, 64, 5, dilation=3),
-                       torch.nn.ReplicationPad1d(4),
-                       torch.nn.ReLU(),
-                       torch.nn.Dropout(p=0.5),
-                       torch.nn.Conv1d(64, 128, 7, dilation=5),
-                       torch.nn.ReplicationPad1d(19),
-                       torch.nn.ReLU(),
-                       torch.nn.Dropout(p=0.5),
-                       torch.nn.Conv1d(128, 32, 5, dilation=3),
-                       torch.nn.ReplicationPad1d(4),
-                       torch.nn.ReLU(),
-                       torch.nn.Dropout(p=0.5),
-                       torch.nn.Conv1d(32, 32, 5, dilation=3),
-                       torch.nn.ReplicationPad1d(4),
-                       torch.nn.ReLU(),
-                       torch.nn.Dropout(p=0.5),
-                       ).double()
-            "CNN for measurement covariance"
-            self.cov_lin = torch.nn.Sequential(torch.nn.Linear(32, 2),
-                                              torch.nn.Tanh(),
-                                              ).double()
-            self.cov_lin[0].bias.data[:] /= 100
-            self.cov_lin[0].weight.data[:] /= 100
+#             self.cov_net = torch.nn.Sequential(torch.nn.Conv1d(6, 32, 5),
+#                        torch.nn.ReplicationPad1d(4),
+#                        torch.nn.ReLU(),
+#                        torch.nn.Dropout(p=0.5),
+#                        torch.nn.Conv1d(32, 64, 5, dilation=3),
+#                        torch.nn.ReplicationPad1d(4),
+#                        torch.nn.ReLU(),
+#                        torch.nn.Dropout(p=0.5),
+#                        torch.nn.Conv1d(64, 128, 7, dilation=5),
+#                        torch.nn.ReplicationPad1d(19),
+#                        torch.nn.ReLU(),
+#                        torch.nn.Dropout(p=0.5),
+#                        torch.nn.Conv1d(128, 32, 5, dilation=3),
+#                        torch.nn.ReplicationPad1d(4),
+#                        torch.nn.ReLU(),
+#                        torch.nn.Dropout(p=0.5),
+#                        torch.nn.Conv1d(32, 32, 5, dilation=3),
+#                        torch.nn.ReplicationPad1d(4),
+#                        torch.nn.ReLU(),
+#                        torch.nn.Dropout(p=0.5),
+#                        ).double()
+#             "CNN for measurement covariance"
+#             self.cov_lin = torch.nn.Sequential(torch.nn.Linear(32, 2),
+#                                               torch.nn.Tanh(),
+#                                               ).double()
+#             self.cov_lin[0].bias.data[:] /= 100
+#             self.cov_lin[0].weight.data[:] /= 100
 
-        def forward(self, u, iekf):
-            y_cov = self.cov_net(u).transpose(0, 2).squeeze()
-            z_cov = self.cov_lin(y_cov)
-            z_cov_net = self.beta_measurement.unsqueeze(0)*z_cov
-            measurements_covs = (iekf.cov0_measurement.unsqueeze(0) * (10**z_cov_net))
-            return measurements_covs
+#         def forward(self, u, iekf):
+#             y_cov = self.cov_net(u).transpose(0, 2).squeeze()
+#             z_cov = self.cov_lin(y_cov)
+#             z_cov_net = self.beta_measurement.unsqueeze(0)*z_cov
+#             measurements_covs = (iekf.cov0_measurement.unsqueeze(0) * (10**z_cov_net))
+#             return measurements_covs
+
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+# class Chomp1d(nn.Module):
+#     """Trim padding off the right end so that causal-dilated conv keeps
+#        the sequence length unchanged (like 'same' padding)."""
+#     def __init__(self, chomp_size):
+#         super().__init__()
+#         self.chomp_size = chomp_size
+#     def forward(self, x):
+#         return x[:, :, :-self.chomp_size].contiguous()
+
+# class TemporalBlock(nn.Module):
+#     """Basic residual block: dilated causal Conv1d → LayerNorm → ReLU → Dropout
+#        (twice) with residual shortcut."""
+#     def __init__(self, nin, nout, kernel, dilation, pdrop):
+#         super().__init__()
+#         pad = (kernel-1) * dilation       # causal
+#         self.net = nn.Sequential(
+#             nn.Conv1d(nin, nout, kernel, padding=pad, dilation=dilation),
+#             Chomp1d(pad),
+#             nn.BatchNorm1d(nout),
+#             nn.ReLU(),
+#             nn.Dropout(pdrop),
+
+#             nn.Conv1d(nout, nout, kernel, padding=pad, dilation=dilation),
+#             Chomp1d(pad),
+#             nn.BatchNorm1d(nout),
+#             nn.ReLU(),
+#             nn.Dropout(pdrop),
+#         )
+#         self.downsample = nn.Conv1d(nin, nout, 1) if nin != nout else nn.Identity()
+#         self.init_weights()
+
+#     def init_weights(self):
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv1d):
+#                 nn.init.kaiming_normal_(m.weight)
+#                 if m.bias is not None:
+#                     nn.init.zeros_(m.bias)
+
+#     def forward(self, x):
+#         return F.relu(self.net(x) + self.downsample(x))
+
+# class MesNet(nn.Module):
+#     """
+#     Temporal Convolutional Network for measurement-noise scaling.
+#     Keeps the original contract: returns 2 covariances per sample.
+#     """
+#     def __init__(self, pdrop=0.3):
+#         super().__init__()
+#         chan = [6, 32, 64, 64, 32]        # feature widths
+#         layers = []
+#         dilation = 1
+#         for i in range(len(chan)-1):
+#             layers.append(
+#                 TemporalBlock(chan[i], chan[i+1],
+#                               kernel=3,
+#                               dilation=dilation,
+#                               pdrop=pdrop)
+#             )
+#             dilation *= 2                # 1,2,4,…  receptive field grows fast
+#         self.tcn = nn.Sequential(*layers)
+        
+#         self.head_conv  = nn.Conv1d(chan[-1], 2, kernel_size=1)
+#         self.head = self.head_conv
+#         self.softplus = nn.Softplus(beta=5.)         # smoother than exp()
+
+#         # ---- compatibility with old code ----
+#         self.cov_net = self.tcn
+#         self.cov_lin = nn.Sequential(self.head)   # a dummy wrapper is enough
+#         # --------------------------------------
+
+
+#         # Optional learnable scale (β in your original code)
+#         self.register_parameter("beta_measurement",
+#                                 nn.Parameter(torch.full((2,), 3.)))
+        
+#         # ---- add this ---------------------------------
+#         self.double()          # converts every parameter/buffer to float64
+#         # ------------------------------------------------
+
+#     def forward(self, u, iekf):
+#         # u: [B, 6, T]
+#         h = self.tcn(u)                       # [B, 32, T]
+#         raw = self.head_conv(h)               # [B,  2, T]
+#         # move time to dim-0 so iekf.run() can index [i]
+#         raw = raw.permute(2, 0, 1).squeeze(1) # [T, 2]   (batch==1)
+#         z_cov_net = self.softplus(raw * self.beta_measurement)
+#         measurements_covs = iekf.cov0_measurement.unsqueeze(0) * z_cov_net
+#         return measurements_covs              # [T, 2], dtype=float64
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class _ConvBNReLU(nn.Sequential):
+    """Shortcut helper: Conv1d → BatchNorm1d → ReLU"""
+    def __init__(self, c_in, c_out, k=3, s=1, p=None):
+        if p is None:                              # 'same' padding for stride-1
+            p = (k - 1) // 2
+        super().__init__(
+            nn.Conv1d(c_in, c_out, kernel_size=k, stride=s, padding=p),
+            nn.BatchNorm1d(c_out),
+            nn.ReLU(inplace=True)
+        )
+
+
+class MesNet(nn.Module):
+    """
+    1-D convolutional *auto-encoder* that
+      • reconstructs the IMU sequence (unsupervised auxiliary task),
+      • predicts two covariances per time-step for the IEKF.
+
+    Parameters
+    ----------
+    latent : int
+        Channel width of the bottleneck representation.
+    pdrop : float
+        Drop-out probability used only in the bottleneck → robust encoder.
+    """
+    def __init__(self, latent=48, pdrop=0.2):
+        super().__init__()
+
+        # ---------- encoder (keeps length T) ----------
+        self.enc = nn.Sequential(
+            _ConvBNReLU(6,   32, k=3, s=1),        # [B,32,T]
+            _ConvBNReLU(32,  64, k=3, s=1),        # [B,64,T]
+            _ConvBNReLU(64, latent, k=1, s=1),     # [B,L,T]  bottleneck
+            nn.Dropout(p=pdrop)
+        )
+
+        # ---------- decoder (mirror) ----------
+        self.dec = nn.Sequential(
+            _ConvBNReLU(latent, 64,  k=1, s=1),
+            _ConvBNReLU(64,    32,  k=3, s=1),
+            nn.Conv1d(32, 6, kernel_size=3, padding=1)   # reconstruction û
+        )
+
+        # ---------- covariance head ------------
+        self.cov_head = nn.Conv1d(latent, 2, kernel_size=1)  # [B,2,T]
+        self.softplus = nn.Softplus(beta=5.)                 # positive scale
+
+        # learnable β (kept from your original design)
+        self.register_parameter(
+            "beta_measurement",
+            nn.Parameter(torch.full((2,), 3.))
+        )
+
+        # --------- legacy names for optimiser ----------
+        self.cov_net = self.enc
+        self.cov_lin = nn.Sequential(self.cov_head)
+        
+        # >>> add this line <<<
+        self.double()          # converts every sub-module to float64
+
+    # ----------------------------------------------------
+    def forward(self, u, iekf, return_reconstruction=False):
+        """
+        Parameters
+        ----------
+        u : torch.Tensor
+            IMU window  [B,6,T]  (double precision expected by the IEKF)
+        iekf : TORCHIEKF
+            Needed only for `cov0_measurement`.
+        return_reconstruction : bool
+            If True, also return û so you can add an MSE loss.
+
+        Returns
+        -------
+        measurements_covs : torch.Tensor  shape [T,2]
+        (optionally) u_hat : torch.Tensor shape [B,6,T]
+        """
+        # encoder → latent features
+        z = self.enc(u)                       # [B,L,T]
+
+        # ----- covariance prediction branch -----
+        raw = self.cov_head(z)                # [B,2,T]
+        raw = raw.permute(2, 0, 1).squeeze(1) # [T,2]
+        z_cov = self.softplus(raw * self.beta_measurement)  # positive
+
+        measurements_covs = (
+            iekf.cov0_measurement.unsqueeze(0) * z_cov       # [T,2]
+        )
+
+        if return_reconstruction:
+            u_hat = self.dec(z)               # [B,6,T]
+            return measurements_covs, u_hat
+        return measurements_covs
+
+
 
 
 class TORCHIEKF(torch.nn.Module, NUMPYIEKF):

@@ -18,6 +18,8 @@ from utils import prepare_data
 from train_torch_filter import train_filter
 from utils_plot import results_filter
 
+import warnings
+warnings.filterwarnings("ignore")
 
 def launch(args):
     if args.read_data:
@@ -86,47 +88,47 @@ class KITTIDataset(BaseDataset):
     '2011_10_03_drive_0034_extract' has trouble at N = [33500, 34000]
     """
 
-    # training set to the raw data of the KITTI dataset.
-    # The following dict lists the name and end frame of each sequence that
-    # has been used to extract the visual odometry / SLAM training set
+    # # training set to the raw data of the KITTI dataset.
+    # # The following dict lists the name and end frame of each sequence that
+    # # has been used to extract the visual odometry / SLAM training set
     odometry_benchmark = OrderedDict()
-    odometry_benchmark["2011_10_03_drive_0027_extract"] = [0, 45692]
-    odometry_benchmark["2011_10_03_drive_0042_extract"] = [0, 12180]
+    # odometry_benchmark["2011_10_03_drive_0027_extract"] = [0, 45692]
+    # odometry_benchmark["2011_10_03_drive_0042_extract"] = [0, 12180]
     odometry_benchmark["2011_10_03_drive_0034_extract"] = [0, 47935]
-    odometry_benchmark["2011_09_26_drive_0067_extract"] = [0, 8000]
-    odometry_benchmark["2011_09_30_drive_0016_extract"] = [0, 2950]
-    odometry_benchmark["2011_09_30_drive_0018_extract"] = [0, 28659]
-    odometry_benchmark["2011_09_30_drive_0020_extract"] = [0, 11347]
-    odometry_benchmark["2011_09_30_drive_0027_extract"] = [0, 11545]
-    odometry_benchmark["2011_09_30_drive_0028_extract"] = [11231, 53650]
-    odometry_benchmark["2011_09_30_drive_0033_extract"] = [0, 16589]
-    odometry_benchmark["2011_09_30_drive_0034_extract"] = [0, 12744]
+    # odometry_benchmark["2011_09_26_drive_0067_extract"] = [0, 8000]
+    # odometry_benchmark["2011_09_30_drive_0016_extract"] = [0, 2950]
+    # odometry_benchmark["2011_09_30_drive_0018_extract"] = [0, 28659]
+    # odometry_benchmark["2011_09_30_drive_0020_extract"] = [0, 11347]
+    # odometry_benchmark["2011_09_30_drive_0027_extract"] = [0, 11545]
+    # odometry_benchmark["2011_09_30_drive_0028_extract"] = [11231, 53650]
+    # odometry_benchmark["2011_09_30_drive_0033_extract"] = [0, 16589]
+    # odometry_benchmark["2011_09_30_drive_0034_extract"] = [0, 12744]
 
-    odometry_benchmark_img = OrderedDict()
-    odometry_benchmark_img["2011_10_03_drive_0027_extract"] = [0, 45400]
-    odometry_benchmark_img["2011_10_03_drive_0042_extract"] = [0, 11000]
-    odometry_benchmark_img["2011_10_03_drive_0034_extract"] = [0, 46600]
-    odometry_benchmark_img["2011_09_26_drive_0067_extract"] = [0, 8000]
-    odometry_benchmark_img["2011_09_30_drive_0016_extract"] = [0, 2700]
-    odometry_benchmark_img["2011_09_30_drive_0018_extract"] = [0, 27600]
-    odometry_benchmark_img["2011_09_30_drive_0020_extract"] = [0, 11000]
-    odometry_benchmark_img["2011_09_30_drive_0027_extract"] = [0, 11000]
-    odometry_benchmark_img["2011_09_30_drive_0028_extract"] = [11000, 51700]
-    odometry_benchmark_img["2011_09_30_drive_0033_extract"] = [0, 15900]
-    odometry_benchmark_img["2011_09_30_drive_0034_extract"] = [0, 12000]
+    # odometry_benchmark_img = OrderedDict()
+    # # # odometry_benchmark_img["2011_10_03_drive_0027_extract"] = [0, 45400]
+    # # odometry_benchmark_img["2011_10_03_drive_0042_extract"] = [0, 11000]
+    # odometry_benchmark_img["2011_10_03_drive_0034_extract"] = [0, 46600]
+    # # odometry_benchmark_img["2011_09_26_drive_0067_extract"] = [0, 8000]
+    # # odometry_benchmark_img["2011_09_30_drive_0016_extract"] = [0, 2700]
+    # # odometry_benchmark_img["2011_09_30_drive_0018_extract"] = [0, 27600]
+    # # odometry_benchmark_img["2011_09_30_drive_0020_extract"] = [0, 11000]
+    # odometry_benchmark_img["2011_09_30_drive_0027_extract"] = [0, 11000]
+    # odometry_benchmark_img["2011_09_30_drive_0028_extract"] = [11000, 51700]
+    # odometry_benchmark_img["2011_09_30_drive_0033_extract"] = [0, 15900]
+    # odometry_benchmark_img["2011_09_30_drive_0034_extract"] = [0, 12000]
 
     def __init__(self, args):
         super(KITTIDataset, self).__init__(args)
 
         self.datasets_validatation_filter['2011_09_30_drive_0028_extract'] = [11231, 53650]
         self.datasets_train_filter["2011_10_03_drive_0042_extract"] = [0, None]
-        self.datasets_train_filter["2011_09_30_drive_0018_extract"] = [0, 15000]
-        self.datasets_train_filter["2011_09_30_drive_0020_extract"] = [0, None]
-        self.datasets_train_filter["2011_09_30_drive_0027_extract"] = [0, None]
-        self.datasets_train_filter["2011_09_30_drive_0033_extract"] = [0, None]
-        self.datasets_train_filter["2011_10_03_drive_0027_extract"] = [0, 18000]
-        self.datasets_train_filter["2011_10_03_drive_0034_extract"] = [0, 31000]
-        self.datasets_train_filter["2011_09_30_drive_0034_extract"] = [0, None]
+        # self.datasets_train_filter["2011_09_30_drive_0018_extract"] = [0, 15000]
+        # self.datasets_train_filter["2011_09_30_drive_0020_extract"] = [0, None]
+        # self.datasets_train_filter["2011_09_30_drive_0027_extract"] = [0, None]
+        # self.datasets_train_filter["2011_09_30_drive_0033_extract"] = [0, None]
+        # self.datasets_train_filter["2011_10_03_drive_0027_extract"] = [0, 18000]
+        # self.datasets_train_filter["2011_10_03_drive_0034_extract"] = [0, 31000]
+        # self.datasets_train_filter["2011_09_30_drive_0034_extract"] = [0, None]
 
         for dataset_fake in KITTIDataset.datasets_fake:
             if dataset_fake in self.datasets:
@@ -450,6 +452,7 @@ def test_filter(args, dataset):
             't': t, 'Rot': Rot, 'v': v, 'p': p, 'b_omega': b_omega, 'b_acc': b_acc,
             'Rot_c_i': Rot_c_i, 't_c_i': t_c_i,
             'measurements_covs': measurements_covs,
+            'test_filter': args.test_filter,
             }
         dataset.dump(mondict, args.path_results, dataset_name + "_filter.p")
 
@@ -460,8 +463,8 @@ class KITTIArgs():
         path_results = "../results"
         path_temp = "../temp"
 
-        epochs = 4 # was 400
-        seq_dim = 6000
+        epochs = 2 # was 400
+        seq_dim = 6000 # was 6000
 
         # training, cross-validation and test dataset
         cross_validation_sequences = ['2011_09_30_drive_0028_extract']
@@ -471,8 +474,8 @@ class KITTIArgs():
         # choose what to do
         read_data = 0
         train_filter = 1
-        test_filter = 1
-        results_filter = 1
+        test_filter = 1  # was 1
+        results_filter = 1  # was 1
         dataset_class = KITTIDataset
         parameter_class = KITTIParameters
 
